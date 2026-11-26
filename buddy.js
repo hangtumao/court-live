@@ -74,7 +74,53 @@ const u=new URL('.',location.href),h=new URLSearchParams();
 function add(readout,i){if(readout.station)h.set('a'+i,readout.station);else if(readout.loc)h.set('a'+i,snap(readout.loc));if(!/^_+$/.test(readout.p))h.set('p'+i,readout.p);if(readout.l)h.set('l'+i,readout.l);}
 if(withReply&&invite){add(read(0),0);add(read(1),1);}else add(a,0);
 u.hash=h.toString();const input=$('buddyCopy');input.value=u.href;input.hidden=false;input.select();const note=$('buddyNote');note.textContent='复制链接发给球友，微信内也可以贴链接。';if(navigator.clipboard)navigator.clipboard.writeText(u.href).then(()=>note.textContent='链接已复制，发给球友就行。').catch(()=>{});}
-$('buddyOpen').onclick=()=>{dlg.showModal();};$('buddyRun').onclick=result;$('buddyShare').onclick=()=>share(false);$('buddyReturn').onclick=()=>share(true);$('buddyReturn').hidden=!invite||reply;$('courtPick').onclick=()=>{if($('plan').disabled)$('find').click();else{$('plan').click();$('stage').scrollIntoView({block:'nearest',behavior:'smooth'});}}; if(invite){dlg.showModal();if(reply)result()}
+$('buddyRun').onclick=result;$('buddyShare').onclick=()=>share(false);$('buddyReturn').onclick=()=>share(true);$('buddyReturn').hidden=!invite||reply; if(invite){dlg.showModal();if(reply)result()}
+
+/* Eight short situations feed the same four dimensions used for friend comparisons. */
+const qz=dialog('tbtiDlg','测测你的 TBTI','<div id="quizBody"></div>');
+qz.classList.add('tbti');
+const quizStyle=document.createElement('style');
+quizStyle.textContent='.tbti{width:min(94vw,520px)} .tbti #quizBody{display:grid;gap:10px} .tbti #quizBody>*{margin:0} .tbti h3{font-size:clamp(20px,5vw,25px);line-height:1.4} .tbti .quizStep{font-size:13px;color:#456455;font-weight:700} .tbti progress{width:100%;height:8px;accent-color:#315b4b} .tbti .quizChoice{width:100%;min-height:54px;border:1px solid #cbded1;border-radius:14px;background:#fff;text-align:left;padding:11px 15px;color:#183c31;font:inherit;line-height:1.4} .tbti .quizChoice:hover,.tbti .quizChoice[aria-pressed=true]{background:#e8f1e7;border-color:#497b61} .tbti .quizCode{font-size:42px;color:#214d3e;font-weight:800;letter-spacing:.09em} .tbti .quizTraits{display:grid;grid-template-columns:1fr 1fr;gap:8px} .tbti .quizTrait{background:#e8f1e7;border-radius:10px;padding:8px 10px;line-height:1.4} .tbti .quizTrait strong{display:block} .tbti .quizActions{display:flex;flex-wrap:wrap;gap:7px} .tbti .quizActions button{min-height:42px}';
+document.head.append(quizStyle);
+const quiz=[
+ [0,2,'临时约到一个球友，你最想怎么打？',['一对一单挑，球都自己接','再叫两个人，组一局双打']],
+ [1,2,'订到一小时，你更想怎么用？',['多球练习，把一个动作练熟','从第一球就开始计分']],
+ [2,2,'打完一场，你希望自己是什么状态？',['出点汗就好，还能一起吃饭','尽量打到尽兴，强度拉满']],
+ [3,2,'有人想和你固定约球，哪个档更好约？',['工作日下班后的晚上','周末白天或傍晚']],
+ [0,1,'最后还有二十分钟，你会选？',['再和一个人单打几局','和大家再来一轮双打']],
+ [1,1,'今天发球老失误，你更想？',['先停下练几个发球','继续比赛，在比分里调整']],
+ [2,1,'搭子比你厉害，怎么打最舒服？',['放慢一点，来回能接上就挺好','跟上他的节奏，逼自己多跑几步']],
+ [3,1,'朋友临时约球，你平时哪个时段更有空？',['周一到周五的晚上','周六或周日']],
+];
+const qbody=$('quizBody');const storeKey='court-live-tbti-v1';
+let qa=[],qi=0,qdone='';
+function validCode(v){return typeof v==='string'&&v.length===4&&[...v].every((c,i)=>axes[i].slice(1).some(x=>x[0]===c));}
+function quizScore(a){const score=[0,0,0,0];quiz.forEach(([dim,w],i)=>{score[dim]+=(a[i]===1?1:-1)*w});return score.map((n,i)=>axes[i][n>0?2:1][0]).join('');}
+function qbtn(txt,where,fn,cls='btn'){const b=el('button',txt,where);b.type='button';b.className=cls;b.onclick=fn;return b;}
+function qshow(){
+ qbody.replaceChildren();
+ if(qdone){
+   el('p','你的 TBTI',qbody).className='quizStep';
+   el('div',qdone,qbody).className='quizCode';
+   const grid=el('div','',qbody);grid.className='quizTraits';
+   [...qdone].forEach((c,i)=>{const cell=el('div',axes[i][0],grid);cell.className='quizTrait';el('strong',axes[i].find(x=>x[0]===c)[1],cell);});
+   el('p','这是球风偏好，不是能力评级；下次想怎么打，可以再测。',qbody).className='muted';
+   const row=el('div','',qbody);row.className='quizActions';
+   qbtn('带着结果去选场',row,()=>{const own=invite&&!reply?1:0;[...qdone].forEach((c,i)=>configs[own].axes[i].value=c);qz.close();dlg.showModal();},'btn primary');
+   qbtn('重测',row,()=>{qa=[];qi=0;qdone='';qshow();});
+   return;
+ }
+ const [dim,w,question,choices]=quiz[qi];
+ el('p','第 '+(qi+1)+' / '+quiz.length+' 题 · '+axes[dim][0],qbody).className='quizStep';
+ const progress=el('progress','',qbody);progress.max=quiz.length;progress.value=qi+1;progress.setAttribute('aria-label','答题进度');
+ el('h3',question,qbody);
+ choices.forEach((c,i)=>{const b=qbtn(c,qbody,()=>{qa[qi]=i;if(qi===quiz.length-1){qdone=quizScore(qa);try{localStorage.setItem(storeKey,qdone)}catch{}}else qi++;qshow();},'quizChoice');b.setAttribute('aria-pressed',String(qa[qi]===i));});
+ if(qi>0){const row=el('div','',qbody);qbtn('上一题',row,()=>{qi--;qshow();});}
+ else el('p','按你平时更常做的选，约 30 秒。',qbody).className='muted';
+}
+$('buddyOpen').onclick=()=>{if(!qdone)try{const c=localStorage.getItem(storeKey);if(validCode(c))qdone=c}catch{}qshow();qz.showModal();};
+$('courtPick').onclick=()=>{dlg.showModal();};
+
 const coverage=dialog('coverageDlg','全市球场分布','<p class="muted">已识别到的网球场面数，颜色越深数量越多，不等于订场热度。</p><div id="coverageRows" style="display:grid;gap:10px"></div><p class="muted"><a href="https://guangdong.tianditu.gov.cn/guangzhou/StandardMap/index.html" target="_blank" rel="noopener">广州标准地图 ↗</a> · <a href="https://tennismap.cn/courts/map" target="_blank" rel="noopener">外部订场地图 ↗</a></p>');
 const cnt={'番禺区':167,'天河区':94,'南沙区':44,'黄埔区':32,'增城区':30,'海珠区':28,'白云区':22,'越秀区':19,'荔湾区':12,'从化区':5,'花都区':4};
 for(const [k,v] of Object.entries(cnt)){const y=el('div','',$('coverageRows'));y.className='heatRow';el('span',k,y);const z=el('span','',y),b=el('i','',z);b.style.width=(10+Math.sqrt(v/167)*90)+'%';b.style.backgroundColor='hsl('+Math.round(35-24*Math.sqrt(v/167))+' 65% '+Math.round(83-38*Math.sqrt(v/167))+'%)';el('span',v+' 面',y);}
