@@ -83,19 +83,19 @@ const quizStyle=document.createElement('style');
 quizStyle.textContent='.tbti{width:min(94vw,520px)} .tbti #quizBody{display:grid;gap:10px} .tbti #quizBody>*{margin:0} .tbti h3{font-size:clamp(20px,5vw,25px);line-height:1.4} .tbti .quizStep{font-size:13px;color:#456455;font-weight:700} .tbti progress{width:100%;height:8px;accent-color:#315b4b} .tbti .quizChoice{width:100%;min-height:54px;border:1px solid #cbded1;border-radius:14px;background:#fff;text-align:left;padding:11px 15px;color:#183c31;font:inherit;line-height:1.4} .tbti .quizChoice:hover,.tbti .quizChoice[aria-pressed=true]{background:#e8f1e7;border-color:#497b61} .tbti .quizCode{font-size:42px;color:#214d3e;font-weight:800;letter-spacing:.09em} .tbti .quizTraits{display:grid;grid-template-columns:1fr 1fr;gap:8px} .tbti .quizTrait{background:#e8f1e7;border-radius:10px;padding:8px 10px;line-height:1.4} .tbti .quizTrait strong{display:block} .tbti .quizActions{display:flex;flex-wrap:wrap;gap:7px} .tbti .quizActions button{min-height:42px}';
 document.head.append(quizStyle);
 const quiz=[
- [0,2,'临时约到一个球友，你最想怎么打？',['一对一单挑，球都自己接','再叫两个人，组一局双打']],
- [1,2,'订到一小时，你更想怎么用？',['多球练习，把一个动作练熟','从第一球就开始计分']],
- [2,2,'打完一场，你希望自己是什么状态？',['出点汗就好，还能一起吃饭','尽量打到尽兴，强度拉满']],
- [3,2,'有人想和你固定约球，哪个档更好约？',['工作日下班后的晚上','周末白天或傍晚']],
- [0,1,'最后还有二十分钟，你会选？',['再和一个人单打几局','和大家再来一轮双打']],
- [1,1,'今天发球老失误，你更想？',['先停下练几个发球','继续比赛，在比分里调整']],
- [2,1,'搭子比你厉害，怎么打最舒服？',['放慢一点，来回能接上就挺好','跟上他的节奏，逼自己多跑几步']],
- [3,1,'朋友临时约球，你平时哪个时段更有空？',['周一到周五的晚上','周六或周日']],
+ [0,'临时约到一个球友，你最想怎么打？',['一对一单挑，球都自己接','再叫两个人，组一局双打']],
+ [1,'订到一小时，你更想怎么用？',['多球练习，把一个动作练熟','从第一球就开始计分']],
+ [2,'打完一场，你希望自己是什么状态？',['出点汗就好，还能一起吃饭','尽量打到尽兴，强度拉满']],
+ [3,'有人想和你固定约球，哪个档更好约？',['工作日下班后的晚上','周末白天或傍晚']],
+ [0,'最后还有二十分钟，你会选？',['再和一个人单打几局','和大家再来一轮双打']],
+ [1,'今天发球老失误，你更想？',['先停下练几个发球','继续比赛，在比分里调整']],
+ [2,'搭子比你厉害，怎么打最舒服？',['放慢一点，来回能接上就挺好','跟上他的节奏，逼自己多跑几步']],
+ [3,'朋友临时约球，你平时哪个时段更有空？',['周一到周五的晚上','周六或周日']],
 ];
-const qbody=$('quizBody');const storeKey='court-live-tbti-v1';
+const qbody=$('quizBody');const storeKey='court-live-tbti-v2';
 let qa=[],qi=0,qdone='';
-function validCode(v){return typeof v==='string'&&v.length===4&&[...v].every((c,i)=>axes[i].slice(1).some(x=>x[0]===c));}
-function quizScore(a){const score=[0,0,0,0];quiz.forEach(([dim,w],i)=>{score[dim]+=(a[i]===1?1:-1)*w});return score.map((n,i)=>axes[i][n>0?2:1][0]).join('');}
+function validCode(v){return typeof v==='string'&&v.length===4&&[...v].every((c,i)=>c==='X'||axes[i].slice(1).some(x=>x[0]===c));}
+function quizScore(a){const score=[0,0,0,0];quiz.forEach(([dim],i)=>{score[dim]+=a[i]===1?1:-1});return score.map((n,i)=>n===0?'X':axes[i][n>0?2:1][0]).join('');}
 function qbtn(txt,where,fn,cls='btn'){const b=el('button',txt,where);b.type='button';b.className=cls;b.onclick=fn;return b;}
 function qshow(){
  qbody.replaceChildren();
@@ -103,14 +103,14 @@ function qshow(){
    el('p','你的 TBTI',qbody).className='quizStep';
    el('div',qdone,qbody).className='quizCode';
    const grid=el('div','',qbody);grid.className='quizTraits';
-   [...qdone].forEach((c,i)=>{const cell=el('div',axes[i][0],grid);cell.className='quizTrait';el('strong',axes[i].find(x=>x[0]===c)[1],cell);});
-   el('p','这是球风偏好，不是能力评级；下次想怎么打，可以再测。',qbody).className='muted';
+   [...qdone].forEach((c,i)=>{const cell=el('div',axes[i][0],grid);cell.className='quizTrait';el('strong',c==='X'?'都可以':axes[i].find(x=>x[0]===c)[1],cell);});
+   el('p','X 表示这项两种都可以。结果是球风偏好，不是能力评级。',qbody).className='muted';
    const row=el('div','',qbody);row.className='quizActions';
-   qbtn('带着结果去选场',row,()=>{const own=invite&&!reply?1:0;[...qdone].forEach((c,i)=>configs[own].axes[i].value=c);qz.close();dlg.showModal();},'btn primary');
+   qbtn('带着结果去选场',row,()=>{const own=invite&&!reply?1:0;[...qdone].forEach((c,i)=>configs[own].axes[i].value=c==='X'?'':c);qz.close();dlg.showModal();},'btn primary');
    qbtn('重测',row,()=>{qa=[];qi=0;qdone='';qshow();});
    return;
  }
- const [dim,w,question,choices]=quiz[qi];
+ const [dim,question,choices]=quiz[qi];
  el('p','第 '+(qi+1)+' / '+quiz.length+' 题 · '+axes[dim][0],qbody).className='quizStep';
  const progress=el('progress','',qbody);progress.max=quiz.length;progress.value=qi+1;progress.setAttribute('aria-label','答题进度');
  el('h3',question,qbody);
